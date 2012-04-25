@@ -1,0 +1,51 @@
+== View Test
+
+Simple rails 3.2 app designed to demonstrate strange behavior when ActiveRecord creates an instance of a model backed by a view.
+
+This app contains two models:
+* Cars
+* Manufacturers
+
+    class Car < ActiveRecord::Base
+      belongs_to :manufacturer
+
+      attr_accessible :name, :manufacturer
+    end
+
+
+    class Manufacturer < ActiveRecord::Base
+      attr_accessible :name
+
+      self.table_name = 'v_manufacturers'
+      self.primary_key = 'id'
+    end
+
+Manufacturers link to a view on top of a "legacy table" with non-conventional column names.
+Cars is a normal Rails convention table
+
+When a new manufacturer is created, the id defaults to 0 rather than nil:
+
+    class ManufacturerTest < ActiveSupport::TestCase
+      test "a new manufacturer should have id = nil" do
+        assert Manufacturer.new(name: 'Toyota').id.nil?
+      end
+    end
+
+However, when a car is created, the id defaults to nil (the correct behavior)
+
+    class CarTest < ActiveSupport::TestCase
+      test "a new car should have id = nil" do
+        toyota = Manufacturer.create(name: 'Toyota')
+
+        supra = Car.new(name: 'Supra', manufacturer: toyota)
+        assert supra.id.nil?
+      end
+    end
+
+this can also be verified by running
+
+    rake db:create db:migrate db:test:prepare
+    rake test
+
+NOTE: this assumes you have mysql setup with the root account having a blank password.  If not, please edit database.yml
+
